@@ -1,0 +1,54 @@
+{
+  "name": "Starter Skeleton",
+  "version": 1.1,
+  "width": 1920,
+  "height": 1080,
+  "code": "
+uniform vec4 _BgDeep;
+uniform vec4 _BgTint;
+uniform vec4 _Accent;
+uniform float _Speed;
+uniform float _Glow;
+uniform float _Vignette;
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+
+void main(){
+    vec2 uv = (_TexCoord*2.0-1.0) * (_ImageSize/_ImageSize.y);
+    float t  = _Time * 0.1 * _Speed;                             // SLOW internal tempo
+
+    // 1) base diagonal gradient (never a flat fill)
+    float g = dot(uv, normalize(vec2(0.7,0.5)))*0.35 + 0.5;
+    vec3 col = mix(_BgDeep.rgb, _BgTint.rgb, clamp(g,0.0,1.0));
+
+    // 2) corner light source -- broad LINEAR falloff, anchored off to one side
+    col += _Accent.rgb * exp(-length(uv - vec2(1.3,0.8))*1.1) * 0.5 * _Glow;
+
+    // 3) ELEMENT LAYER == YOUR MOTIF. Replace this block (see the genre cookbook).
+    //    Placeholder: two soft blobs drifting on incommensurate sines, anchored
+    //    OFF-CANVAS, tinted by the accent so the scene reads as one lit whole.
+    //    GAUSSIAN falloff (exp(-d*d)) keeps each blob compact.
+    vec2 p1 = vec2(-1.5, 0.9) + vec2(sin(t*0.11), cos(t*0.07))*0.3;
+    vec2 p2 = vec2( 1.6,-1.0) + vec2(cos(t*0.09), sin(t*0.05))*0.3;
+    col += _Accent.rgb * exp(-dot(uv-p1,uv-p1)*0.9) * 0.35 * _Glow;
+    col += _Accent.rgb * exp(-dot(uv-p2,uv-p2)*0.9) * 0.25 * _Glow;
+
+    // 4) FINISHING PASS (keep for atmospheric looks; drop for bold/flat ones)
+    col  = col/(1.0 + col*0.25);                                 // tonemap
+    col += (hash(uv*_ImageSize + fract(_Time)*7.0) - 0.5)*0.014;  // grain / dither
+    float lum = dot(col, vec3(0.299,0.587,0.114));
+    col  = mix(vec3(lum), col, 1.25);                            // saturation recovery
+    col *= mix(1.0, smoothstep(1.8,0.35,length(uv)), _Vignette); // vignette
+
+    _FragColor = vec4(col, 1.0);
+}
+",
+  "effectDef": [
+    { "type": "Color", "name": "BgDeep", "value": "0A1030" },
+    { "type": "Color", "name": "BgTint", "value": "1A2350" },
+    { "type": "Color", "name": "Accent", "value": "4C8DFF" },
+    { "type": "double", "name": "Speed", "minValue": 0, "maxValue": 3, "defaultValue": 1.0 },
+    { "type": "double", "name": "Glow", "minValue": 0, "maxValue": 2, "defaultValue": 1.0 },
+    { "type": "double", "name": "Vignette", "minValue": 0, "maxValue": 1, "defaultValue": 0.5 }
+  ]
+}
